@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
-import { catchError, Observable, tap, throwError } from 'rxjs';
+import { catchError, map, Observable, tap, throwError } from 'rxjs';
 
 import { Product } from './product';
 
@@ -13,7 +13,17 @@ export class ProductService {
   private suppliersUrl = 'api/suppliers';
 
   products$ = this.http.get<Product[]>(this.productsUrl).pipe(
-    tap((data) => console.log('Products: ', JSON.stringify(data))),
+    map((products) =>
+      products.map((product) => {
+        const { price, productName } = product;
+        return {
+          ...product,
+          price: price ? price * 1.5 : 0,
+          searchKey: [productName],
+        } as Product;
+      })
+    ),
+    tap((d) => console.log(d)),
     catchError(this.handleError)
   );
 
