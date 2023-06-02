@@ -22,6 +22,7 @@ export class ProductService {
   private suppliersUrl = 'api/suppliers';
 
   products$ = this.http.get<Product[]>(this.productsUrl).pipe(
+    tap((v) => console.log(v)),
     map((products) =>
       products.map((product) => {
         const { price, productName } = product;
