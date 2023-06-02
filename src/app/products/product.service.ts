@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 import {
+  BehaviorSubject,
   catchError,
   combineLatest,
   map,
@@ -22,7 +23,6 @@ export class ProductService {
   private suppliersUrl = 'api/suppliers';
 
   products$ = this.http.get<Product[]>(this.productsUrl).pipe(
-    tap((v) => console.log(v)),
     map((products) =>
       products.map((product) => {
         const { price, productName } = product;
@@ -39,22 +39,35 @@ export class ProductService {
   productsWithCategories$ = combineLatest([
     this.products$,
     this.productCategoryService.productCategories$,
-  ]).pipe(map(this.mapCategories));
+  ]).pipe(
+    map(([products, categories]) =>
+      products.map((product: Product) => ({
+        ...product,
+        categoryName: categories.find(({ id }) => id === product.categoryId)
+          ?.name,
+      }))
+    )
+  );
+
+  private selectedProductIdSubject = new BehaviorSubject<number>(0);
+  selectedProductIdAction$ = this.selectedProductIdSubject.asObservable();
+
+  selectedProduct$ = combineLatest([
+    this.selectedProductIdSubject,
+    this.productsWithCategories$,
+  ]).pipe(
+    map(([selectedId, products]) =>
+      products.find(({ id }) => id === selectedId)
+    )
+  );
 
   constructor(
     private http: HttpClient,
     private productCategoryService: ProductCategoryService
   ) {}
 
-  mapCategories([products, categories]: [
-    Product[],
-    ProductCategory[]
-  ]): Product[] {
-    return products.map((product: Product) => ({
-      ...product,
-      categoryName: categories.find(({ id }) => id === product.categoryId)
-        ?.name,
-    }));
+  public selectProduct(productId: number): void {
+    this.selectedProductIdSubject.next(productId);
   }
 
   private fakeProduct(): Product {
