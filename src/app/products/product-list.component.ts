@@ -1,7 +1,15 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
-import { EMPTY, catchError, map } from 'rxjs';
-import { ProductCategory } from '../product-categories/product-category';
+import {
+  BehaviorSubject,
+  EMPTY,
+  Subject,
+  catchError,
+  combineLatest,
+  map,
+  startWith,
+  tap,
+} from 'rxjs';
 
 import { ProductService } from './product.service';
 import { ProductCategoryService } from '../product-categories/product-category.service';
@@ -14,22 +22,31 @@ import { ProductCategoryService } from '../product-categories/product-category.s
 export class ProductListComponent {
   pageTitle = 'Product List';
   errorMessage = '';
-  categories$ = this.productCategoryService.productCategories$;
-  selectedCategoryId = 1;
 
-  products$ = this.productService.productsWithCategories$.pipe(
+  private selectedCategorySubject = new BehaviorSubject<number>(0);
+  selectedCategory$ = this.selectedCategorySubject.asObservable();
+
+  categories$ = this.productCategoryService.productCategories$.pipe(
     catchError((err) => {
       this.errorMessage = err;
       return EMPTY;
     })
   );
 
-  filteredProducts$ = this.productService.productsWithCategories$.pipe(
-    map((products) => {
-      return products.filter(({ categoryId }) =>
-        this.selectedCategoryId ? this.selectedCategoryId === categoryId : true
+  products$ = combineLatest([
+    this.productService.productsWithCategories$,
+    this.selectedCategory$,
+  ]).pipe(
+    catchError((err) => {
+      this.errorMessage = err;
+      return EMPTY;
+    }),
+    map(([products, selectedCategoryId]) => {
+      return products.filter(({ categoryId: id }) =>
+        selectedCategoryId ? selectedCategoryId === id : true
       );
-    })
+    }),
+    tap((val) => console.log(val))
   );
 
   constructor(
@@ -42,6 +59,6 @@ export class ProductListComponent {
   }
 
   onSelected(categoryId: string): void {
-    this.selectedCategoryId = +categoryId;
+    this.selectedCategorySubject.next(+categoryId);
   }
 }
