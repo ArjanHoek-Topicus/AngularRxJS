@@ -8,6 +8,7 @@
       <div class="row justify-content-between">
         <div class="col-3">
           <select
+            *ngIf="categories$ | async as categories"
             class="form-control"
             (change)="onSelected($any($event.target).value)"
           >
@@ -30,7 +31,7 @@
     </div>
 
     <div class="table-responsive">
-      <table class="table mb-0" *ngIf="products$ | async as products">
+      <table class="table mb-0" *ngIf="filteredProducts$ | async as products">
         <thead>
           <tr>
             <th>Product</th>
